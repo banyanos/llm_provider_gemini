@@ -6,3 +6,8 @@ __author__ = "bibow"
 
 __all__ = ["llm_provider_gemini", "GeminiProvider"]
 from .llm_provider_gemini import GeminiProvider
+
+#: Discovered by llm_engine's ``llm_provider_*`` package scan when the
+#: project is on PYTHONPATH without being pip-installed (bind mount); the
+#: ``banyan.llm_providers`` entry points cover installed packages.
+PROVIDERS = [GeminiProvider]
