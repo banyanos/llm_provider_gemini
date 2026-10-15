@@ -17,7 +17,11 @@ from typing import Any, Dict, List, Optional
 import pendulum
 from google import genai
 from google.genai import types
-from llm_provider_base import LlmProviderHandler
+from llm_provider_base import (
+    LlmProviderHandler,
+    endpoint_base,
+    fetch_upstream_models,
+)
 from silvaengine_utility.performance_monitor import performance_monitor
 from silvaengine_utility.serializer import Serializer
 
@@ -56,6 +60,20 @@ class GeminiProvider(LlmProviderHandler):
         "list_models": True,
     }
     default_pool_name = "httpx_llm_gemini"
+
+    @classmethod
+    def list_models(cls, ctx: Any) -> List[Dict[str, str]]:
+        """Gemini model list: ``GET {endpoint}/v1beta/models``."""
+        key = str((getattr(ctx, "credentials", None) or {}).get("api_key") or "")
+        base = endpoint_base(ctx, "https://generativelanguage.googleapis.com")
+        for suffix in ("/v1beta", "/v1"):
+            if base.endswith(suffix):
+                base = base[: -len(suffix)]
+        return fetch_upstream_models(
+            ctx, f"{base}/v1beta/models",
+            headers={"x-goog-api-key": key} if key else {},
+            items_key="models", id_key="name", strip_prefix="models/",
+        )
 
     @staticmethod
     def _sanitize_tool_schema(tool: Dict[str, Any]) -> Dict[str, Any]:
@@ -1207,7 +1225,6 @@ class GeminiProvider(LlmProviderHandler):
                             reasoning_text = part.text
 
                             # Accumulate reasoning text
-                            print(reasoning_text, end="", flush=True)
                             accumulated_reasoning_parts.append(reasoning_text)
                             accumulated_partial_reasoning_text += reasoning_text
 
@@ -1290,7 +1307,6 @@ class GeminiProvider(LlmProviderHandler):
                     message_started = True
 
                 # Process text based on output format
-                print(chunk.text, end="", flush=True)
                 # Append to list instead of string concatenation (performance optimization)
                 accumulated_text_parts.append(chunk.text)
 
